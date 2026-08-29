@@ -3,8 +3,27 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bagel Client</title>
+
+    <!-- ── SEO & Social Meta Tags ── -->
+    <title>Try the #1 Client for BagelSMP</title>
+    <meta name="title" content="Try the #1 Client for BagelSMP" />
+    <meta name="description" content="Bagel Client is the best & easiest way to play on the BagelSMP" />
+
+    <!-- Open Graph / Discord -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bagel-client.pages.dev/" />
+    <meta property="og:title" content="Try the #1 Client for BagelSMP" />
+    <meta property="og:description" content="Bagel Client is the best & easiest way to play on the BagelSMP" />
+    <meta property="og:image" content="https://i.imgur.com/cOxZefb.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Try the #1 Client for BagelSMP" />
+    <meta name="twitter:description" content="Bagel Client is the best & easiest way to play on the BagelSMP" />
+    <meta name="twitter:image" content="https://i.imgur.com/cOxZefb.png" />
+
     <link rel="icon" href="https://i.imgur.com/cOxZefb.png" type="image/png" />
+
     <style>
         /* ── Reset ── */
         * {
@@ -62,7 +81,6 @@
             will-change: transform, opacity;
             opacity: 0;
             transition: opacity 1.2s ease;
-            /* pan animation – paused by default, runs when active */
             animation: panBackground 12s ease-in-out infinite alternate;
             animation-play-state: paused;
         }
@@ -972,7 +990,7 @@
 </head>
 <body>
 
-    <!-- ─── BACKGROUND WRAPPER (dual images for crossfade) ─── -->
+    <!-- ─── BACKGROUND WRAPPER ─── -->
     <div class="bg-wrapper">
         <div class="bg-image" id="bgCurrent"></div>
         <div class="bg-image" id="bgNext"></div>
@@ -1089,7 +1107,7 @@
             news: document.getElementById('newsContent')
         };
 
-        // ── Background crossfade (smooth, no flashes) ──
+        // ── Background crossfade ──
         const bgImages = [
             'https://i.imgur.com/FWmRprl.png',
             'https://i.imgur.com/xTk73ne.png',
@@ -1099,33 +1117,23 @@
         let currentEl = document.getElementById('bgCurrent');
         let nextEl = document.getElementById('bgNext');
 
-        // Initialize: set first image on currentEl, make it active
         currentEl.style.backgroundImage = `url(${bgImages[0]})`;
         currentEl.classList.add('active');
 
         function cycleBackground() {
             const nextIdx = (currentIdx + 1) % bgImages.length;
-            // Set the next image on the nextEl (which is hidden)
             nextEl.style.backgroundImage = `url(${bgImages[nextIdx]})`;
-            // Fade in nextEl
             nextEl.classList.add('active');
 
-            // After the transition, hide the old current and swap roles
             setTimeout(() => {
-                // Hide the old current
                 currentEl.classList.remove('active');
-
-                // Swap the two elements' roles
                 const temp = currentEl;
                 currentEl = nextEl;
                 nextEl = temp;
-
-                // Update index
                 currentIdx = nextIdx;
-            }, 1300); // slightly longer than CSS transition (1.2s) to ensure smoothness
+            }, 1300);
         }
 
-        // Start the rotation (every 7.5 seconds)
         setInterval(cycleBackground, 7500);
 
         // ── Helper to re-trigger animation on header/footer ──
