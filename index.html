@@ -81,6 +81,7 @@
             will-change: transform, opacity;
             opacity: 0;
             transition: opacity 1.2s ease;
+            /* pan animation – paused by default, runs when active */
             animation: panBackground 12s ease-in-out infinite alternate;
             animation-play-state: paused;
         }
@@ -990,7 +991,7 @@
 </head>
 <body>
 
-    <!-- ─── BACKGROUND WRAPPER ─── -->
+    <!-- ─── BACKGROUND WRAPPER (dual images for crossfade) ─── -->
     <div class="bg-wrapper">
         <div class="bg-image" id="bgCurrent"></div>
         <div class="bg-image" id="bgNext"></div>
@@ -1107,7 +1108,7 @@
             news: document.getElementById('newsContent')
         };
 
-        // ── Background crossfade ──
+        // ── Background crossfade (smooth, no flashes) ──
         const bgImages = [
             'https://i.imgur.com/FWmRprl.png',
             'https://i.imgur.com/xTk73ne.png',
@@ -1117,23 +1118,33 @@
         let currentEl = document.getElementById('bgCurrent');
         let nextEl = document.getElementById('bgNext');
 
+        // Initialize: set first image on currentEl, make it active
         currentEl.style.backgroundImage = `url(${bgImages[0]})`;
         currentEl.classList.add('active');
 
         function cycleBackground() {
             const nextIdx = (currentIdx + 1) % bgImages.length;
+            // Set the next image on the nextEl (which is hidden)
             nextEl.style.backgroundImage = `url(${bgImages[nextIdx]})`;
+            // Fade in nextEl
             nextEl.classList.add('active');
 
+            // After the transition, hide the old current and swap roles
             setTimeout(() => {
+                // Hide the old current
                 currentEl.classList.remove('active');
+
+                // Swap the two elements' roles
                 const temp = currentEl;
                 currentEl = nextEl;
                 nextEl = temp;
+
+                // Update index
                 currentIdx = nextIdx;
-            }, 1300);
+            }, 1300); // slightly longer than CSS transition (1.2s) to ensure smoothness
         }
 
+        // Start the rotation (every 7.5 seconds)
         setInterval(cycleBackground, 7500);
 
         // ── Helper to re-trigger animation on header/footer ──
