@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bagel Client</title>
+    <link rel="icon" href="https://i.imgur.com/cOxZefb.png" type="image/png" />
+    <style>
+        /* ── Reset ── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Custom Scrollbar ── */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(245, 166, 35, 0.4);
+            border-radius: 10px;
+            transition: background 0.3s;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(245, 166, 35, 0.7);
+        }
+
+        /* ── Background Wrapper & Dual Images ── */
+        .bg-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            overflow: hidden;
+        }
+
+        .bg-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 110%;
+            height: 110%;
+            background-size: cover;
+            background-position: center;
+            will-change: transform, opacity;
+            opacity: 0;
+            transition: opacity 1.2s ease;
+            /* pan animation – paused by default, runs when active */
+            animation: panBackground 12s ease-in-out infinite alternate;
+            animation-play-state: paused;
+        }
+
+        .bg-image.active {
+            opacity: 1;
+            animation-play-state: running;
+        }
+
+        @keyframes panBackground {
+            0% {
+                transform: scale(1.05) translateX(0);
+            }
+            100% {
+                transform: scale(1.05) translateX(-4%);
+            }
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: rgba(0, 0, 0, 0.55);
+            transition: background 0.5s ease;
+        }
+
+        body.page-help .bg-image,
+        body.page-news .bg-image {
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        body.page-help .overlay,
+        body.page-news .overlay {
+            background: #0b0e14;
+            opacity: 1;
+        }
+
+        /* ── Header ── */
+        .header {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            padding: 16px 40px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+            gap: 20px;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: slideDown 0.6s ease forwards;
+            animation-delay: 0.1s;
+            z-index: 10;
+            position: relative;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .header.animating {
+            animation: slideDown 0.5s ease forwards;
+        }
+
+        @keyframes slideDown {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-self: start;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-size: 30px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #f5a623, #f7c56e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 0.3px;
+        }
+
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 4px 6px;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            justify-self: center;
+        }
+
+        .header-nav .nav-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 15px;
+            font-weight: 600;
+            padding: 8px 22px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            letter-spacing: 0.3px;
+        }
+
+        .header-nav .nav-btn.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 12px rgba(245, 166, 35, 0.15);
+        }
+
+        .header-nav .nav-btn:not(.active):hover {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .discord-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #5865F2;
+            padding: 8px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            animation: pulse 2s infinite;
+            justify-self: end;
+            flex-shrink: 0;
+        }
+
+        .discord-btn:hover {
+            background: #4752c4;
+            transform: scale(1.05);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(88, 101, 242, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(88, 101, 242, 0);
+            }
+        }
+
+        .discord-icon {
+            width: 18px;
+            height: 18px;
+            display: inline-block;
+        }
+
+        /* ── Header/Footer fade-out for launch ── */
+        .header.fade-out,
+        .footer.fade-out {
+            opacity: 0 !important;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        /* ── Main Content ── */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px 10px 20px;
+            position: relative;
+            z-index: 1;
+            transition: opacity 0.6s ease;
+            margin-top: -5vh;
+        }
+
+        /* ── Content sections ── */
+        .page-content {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+            animation: fadeUp 0.5s ease forwards;
+        }
+
+        .page-content.active {
+            display: flex;
+        }
+
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── Launch Page Content ── */
+        .hero-logo {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            margin-bottom: 6px;
+        }
+
+        .client-name {
+            font-size: 64px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #f5a623, #f7c56e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 18px;
+            text-shadow: 0 0 30px rgba(245, 166, 35, 0.3);
+        }
+
+        .launch-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .launch-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #4CAF50;
+            border-radius: 12px;
+            padding: 18px 28px;
+            box-shadow: 0 0 30px rgba(76, 175, 80, 0.5);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: default;
+            user-select: none;
+            width: 100%;
+        }
+
+        .launch-main:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 40px rgba(76, 175, 80, 0.7);
+        }
+
+        .launch-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.2;
+            flex: 1;
+        }
+
+        .launch-text .big {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            color: #fff;
+        }
+
+        .launch-text .small {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.85);
+            margin-top: 2px;
+        }
+
+        .launch-divider {
+            width: 2px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0 16px;
+            flex-shrink: 0;
+        }
+
+        .launch-arrow {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .launch-arrow:hover {
+            opacity: 0.8;
+        }
+
+        .launch-arrow svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+            transition: transform 0.3s ease;
+        }
+
+        .launch-arrow.open svg {
+            transform: rotate(180deg);
+        }
+
+        .launch-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            right: 0;
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 5px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            gap: 3px;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            max-height: 140px;
+            overflow-y: auto;
+            transform-origin: top center;
+        }
+
+        .launch-dropdown.open {
+            display: flex;
+            animation: dropIn 0.25s ease forwards;
+        }
+
+        .launch-dropdown.closing {
+            display: flex;
+            animation: dropOut 0.2s ease forwards;
+        }
+
+        @keyframes dropIn {
+            0% {
+                opacity: 0;
+                transform: scaleY(0.8) translateY(-10px);
+            }
+            100% {
+                opacity: 1;
+                transform: scaleY(1) translateY(0);
+            }
+        }
+
+        @keyframes dropOut {
+            0% {
+                opacity: 1;
+                transform: scaleY(1) translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: scaleY(0.8) translateY(-10px);
+            }
+        }
+
+        .launch-dropdown::-webkit-scrollbar {
+            width: 4px;
+        }
+        .launch-dropdown::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        .launch-dropdown::-webkit-scrollbar-thumb {
+            background: rgba(245, 166, 35, 0.3);
+            border-radius: 10px;
+        }
+
+        .dropdown-option {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            text-align: left;
+            border: 2px solid transparent;
+        }
+
+        .dropdown-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .dropdown-option.selected {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.15);
+        }
+
+        .dropdown-option .opt-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .dropdown-option .opt-desc {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 1px;
+        }
+
+        .dropdown-option .opt-badge {
+            font-size: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1px 7px;
+            border-radius: 20px;
+            color: rgba(255, 255, 255, 0.4);
+            display: inline-block;
+            margin-top: 2px;
+        }
+
+        .dropdown-option.unavailable .opt-title {
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .dropdown-option.unavailable .opt-desc {
+            color: rgba(255, 255, 255, 0.2);
+        }
+        .dropdown-option.unavailable .opt-badge {
+            background: rgba(255, 0, 0, 0.15);
+            color: rgba(255, 100, 100, 0.6);
+        }
+
+        /* ── Help / News Pages ── */
+        .help-news-content {
+            text-align: center;
+            color: white;
+            padding-top: 6vh;
+        }
+
+        .help-news-content .page-title {
+            font-size: 48px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 16px;
+        }
+
+        .help-news-content .desc-text {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        .help-news-content .discord-small {
+            margin-top: 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #5865F2;
+            padding: 8px 22px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-decoration: none;
+        }
+
+        .help-news-content .discord-small:hover {
+            background: #4752c4;
+        }
+
+        .help-news-content .discord-small svg {
+            width: 18px;
+            height: 18px;
+            fill: white;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 12px 40px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUp 0.6s ease forwards;
+            animation-delay: 0.5s;
+            z-index: 10;
+            position: relative;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .footer.animating {
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .copyright {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* ── Fade-to-Black Launch Overlay ── */
+        .launch-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            background: #0b0e14;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            text-align: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.7s ease;
+        }
+
+        .launch-overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .launch-overlay .hero-logo-launch {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            margin-bottom: 16px;
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            animation: fadeUpLaunch 0.7s ease forwards;
+            animation-delay: 0.3s;
+        }
+
+        .launch-overlay .client-name-launch {
+            font-size: 64px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #f5a623, #f7c56e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(245, 166, 35, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUpLaunch 0.7s ease forwards;
+            animation-delay: 0.4s;
+        }
+
+        .launch-overlay .sub-text {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 16px;
+            margin-top: 8px;
+            opacity: 0;
+            animation: fadeUpLaunch 0.7s ease forwards;
+            animation-delay: 0.5s;
+        }
+
+        .launch-overlay .back-btn {
+            margin-top: 30px;
+            padding: 8px 28px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: inherit;
+            opacity: 0;
+            animation: fadeUpLaunch 0.7s ease forwards;
+            animation-delay: 0.6s;
+        }
+
+        .launch-overlay .back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        @keyframes fadeUpLaunch {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ── Main content fade-out for launch ── */
+        .main-content.fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 820px) {
+            .header {
+                padding: 12px 20px;
+                gap: 12px;
+                grid-template-columns: 1fr auto 1fr;
+            }
+            .logo-icon {
+                width: 44px;
+                height: 44px;
+            }
+            .logo-text {
+                font-size: 24px;
+            }
+            .header-nav .nav-btn {
+                font-size: 13px;
+                padding: 6px 14px;
+            }
+            .discord-btn {
+                padding: 6px 16px;
+                font-size: 12px;
+            }
+            .client-name {
+                font-size: 48px;
+                margin-bottom: 14px;
+            }
+            .hero-logo {
+                width: 100px;
+                height: 100px;
+                margin-bottom: 4px;
+            }
+            .launch-wrapper {
+                max-width: 360px;
+            }
+            .launch-main {
+                padding: 16px 22px;
+            }
+            .launch-text .big {
+                font-size: 24px;
+                letter-spacing: 2.5px;
+            }
+            .launch-text .small {
+                font-size: 13px;
+            }
+            .launch-divider {
+                margin: 0 14px;
+                height: 32px;
+            }
+            .launch-arrow svg {
+                width: 22px;
+                height: 22px;
+            }
+            .launch-dropdown {
+                max-height: 130px;
+            }
+            .dropdown-option {
+                padding: 5px 9px;
+            }
+            .dropdown-option .opt-title {
+                font-size: 11px;
+            }
+            .dropdown-option .opt-desc {
+                font-size: 10px;
+            }
+            .launch-overlay .hero-logo-launch {
+                width: 100px;
+                height: 100px;
+            }
+            .launch-overlay .client-name-launch {
+                font-size: 48px;
+            }
+            .footer {
+                padding: 10px 20px;
+            }
+            .copyright {
+                font-size: 12px;
+            }
+            .main-content {
+                margin-top: -4vh;
+            }
+            .help-news-content .page-title {
+                font-size: 36px;
+            }
+            .help-news-content .desc-text {
+                font-size: 16px;
+            }
+            .help-news-content {
+                padding-top: 5vh;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 10px 16px;
+                justify-items: center;
+            }
+            .logo-area {
+                justify-self: center;
+            }
+            .header-nav {
+                justify-self: center;
+                width: 100%;
+                justify-content: center;
+                gap: 4px;
+                padding: 4px;
+                border-radius: 30px;
+            }
+            .header-nav .nav-btn {
+                font-size: 12px;
+                padding: 5px 12px;
+            }
+            .discord-btn {
+                justify-self: center;
+                padding: 6px 18px;
+                font-size: 12px;
+            }
+            .main-content {
+                padding: 0 16px 8px 16px;
+                margin-top: -3vh;
+            }
+            .client-name {
+                font-size: 36px;
+                margin-bottom: 12px;
+            }
+            .hero-logo {
+                width: 80px;
+                height: 80px;
+                margin-bottom: 4px;
+            }
+            .launch-wrapper {
+                max-width: 100%;
+                padding: 0 12px;
+            }
+            .launch-main {
+                padding: 14px 18px;
+                border-radius: 10px;
+            }
+            .launch-text .big {
+                font-size: 22px;
+                letter-spacing: 2px;
+            }
+            .launch-text .small {
+                font-size: 12px;
+            }
+            .launch-divider {
+                margin: 0 10px;
+                height: 28px;
+            }
+            .launch-arrow svg {
+                width: 20px;
+                height: 20px;
+            }
+            .launch-dropdown {
+                max-height: 120px;
+                left: 8px;
+                right: 8px;
+                padding: 4px;
+            }
+            .dropdown-option {
+                padding: 5px 8px;
+            }
+            .dropdown-option .opt-title {
+                font-size: 11px;
+            }
+            .dropdown-option .opt-desc {
+                font-size: 10px;
+            }
+            .dropdown-option .opt-badge {
+                font-size: 7px;
+                padding: 1px 6px;
+            }
+            .launch-overlay .hero-logo-launch {
+                width: 80px;
+                height: 80px;
+            }
+            .launch-overlay .client-name-launch {
+                font-size: 36px;
+            }
+            .launch-overlay .sub-text {
+                font-size: 14px;
+            }
+            .footer {
+                flex-direction: column;
+                gap: 4px;
+                padding: 10px 16px;
+                text-align: center;
+            }
+            .copyright {
+                font-size: 11px;
+            }
+            .help-news-content .page-title {
+                font-size: 28px;
+            }
+            .help-news-content .desc-text {
+                font-size: 14px;
+            }
+            .help-news-content {
+                padding-top: 4vh;
+            }
+        }
+
+        @media (max-width: 430px) {
+            .header-nav .nav-btn {
+                font-size: 11px;
+                padding: 4px 10px;
+            }
+            .logo-text {
+                font-size: 20px;
+            }
+            .logo-icon {
+                width: 38px;
+                height: 38px;
+            }
+            .client-name {
+                font-size: 28px;
+                margin-bottom: 10px;
+            }
+            .hero-logo {
+                width: 64px;
+                height: 64px;
+                margin-bottom: 3px;
+            }
+            .launch-wrapper {
+                padding: 0 8px;
+            }
+            .launch-main {
+                padding: 12px 14px;
+            }
+            .launch-text .big {
+                font-size: 18px;
+                letter-spacing: 1.5px;
+            }
+            .launch-text .small {
+                font-size: 10px;
+            }
+            .launch-divider {
+                margin: 0 8px;
+                height: 24px;
+            }
+            .launch-arrow svg {
+                width: 16px;
+                height: 16px;
+            }
+            .launch-dropdown {
+                max-height: 110px;
+                top: calc(100% + 8px);
+                padding: 3px;
+            }
+            .dropdown-option {
+                padding: 4px 7px;
+            }
+            .dropdown-option .opt-title {
+                font-size: 10px;
+            }
+            .dropdown-option .opt-desc {
+                font-size: 9px;
+            }
+            .dropdown-option .opt-badge {
+                font-size: 7px;
+                padding: 1px 5px;
+            }
+            .launch-overlay .hero-logo-launch {
+                width: 64px;
+                height: 64px;
+            }
+            .launch-overlay .client-name-launch {
+                font-size: 28px;
+            }
+            .launch-overlay .sub-text {
+                font-size: 12px;
+            }
+            .main-content {
+                margin-top: -2vh;
+            }
+            .help-news-content .page-title {
+                font-size: 24px;
+            }
+            .help-news-content .desc-text {
+                font-size: 13px;
+            }
+            .help-news-content {
+                padding-top: 3vh;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ─── BACKGROUND WRAPPER (dual images for crossfade) ─── -->
+    <div class="bg-wrapper">
+        <div class="bg-image" id="bgCurrent"></div>
+        <div class="bg-image" id="bgNext"></div>
+    </div>
+    <div class="overlay"></div>
+
+    <!-- ─── FADE-TO-BLACK LAUNCH OVERLAY ─── -->
+    <div class="launch-overlay" id="launchOverlay">
+        <img class="hero-logo-launch" src="https://i.imgur.com/cOxZefb.png" alt="Bagel Client Logo" />
+        <div class="client-name-launch">Bagel Client</div>
+        <div class="sub-text">Loading Minecraft 1.12.2 &hellip;</div>
+        <button class="back-btn" id="closeLaunchBtn">← Back</button>
+    </div>
+
+    <!-- ─── HEADER ─── -->
+    <header class="header" id="header">
+        <div class="logo-area">
+            <img class="logo-icon" src="https://i.imgur.com/cOxZefb.png" alt="Bagel Client Logo" />
+            <span class="logo-text">Bagel Client</span>
+        </div>
+        <nav class="header-nav">
+            <span class="nav-btn" data-tab="help">Help</span>
+            <span class="nav-btn active" data-tab="launch">Launch</span>
+            <span class="nav-btn" data-tab="news">News</span>
+        </nav>
+        <button class="discord-btn" id="discordBtn">
+            <svg class="discord-icon" viewBox="0 0 127.14 96.36" fill="white">
+                <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.86.68,1.75,1.36,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,28.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S53.8,46,53.8,53,48.81,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.2,60,73.2,53s5-12.74,11.44-12.74S96,46,96,53,91.08,65.69,84.69,65.69Z" />
+            </svg>
+            <span>Join Discord</span>
+        </button>
+    </header>
+
+    <!-- ─── MAIN CONTENT ─── -->
+    <main class="main-content" id="mainContent">
+
+        <!-- ─── LAUNCH PAGE ─── -->
+        <div class="page-content active" id="launchContent">
+            <img class="hero-logo" src="https://i.imgur.com/cOxZefb.png" alt="Bagel Client Logo" />
+            <div class="client-name">Bagel Client</div>
+
+            <div class="launch-wrapper" id="launchWrapper">
+                <div class="launch-main" id="launchMain">
+                    <div class="launch-text">
+                        <span class="big">LAUNCH</span>
+                        <span class="small">Bagel Client WASM-GC</span>
+                    </div>
+                    <div class="launch-divider"></div>
+                    <div class="launch-arrow" id="launchArrow">
+                        <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+                    </div>
+                </div>
+
+                <div class="launch-dropdown" id="launchDropdown">
+                    <div class="dropdown-option selected" data-version="wasm">
+                        <div class="opt-title">WASM-GC</div>
+                        <div class="opt-desc">Bagel Client BETA release v.1</div>
+                        <span class="opt-badge">Recommended</span>
+                    </div>
+                    <div class="dropdown-option unavailable" data-version="js">
+                        <div class="opt-title">JavaScript</div>
+                        <div class="opt-desc">This option is unavailable</div>
+                        <span class="opt-badge">Soon</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── HELP PAGE ─── -->
+        <div class="page-content help-news-content" id="helpContent">
+            <div class="page-title">Support Centre</div>
+            <div class="desc-text">This is being worked on! Check our discord for updates.</div>
+            <a class="discord-small" href="https://discord.gg/CPPyy49wQe" target="_blank">
+                <svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.86.68,1.75,1.36,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,28.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S53.8,46,53.8,53,48.81,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.2,60,73.2,53s5-12.74,11.44-12.74S96,46,96,53,91.08,65.69,84.69,65.69Z"/></svg>
+                <span>Join Discord</span>
+            </a>
+        </div>
+
+        <!-- ─── NEWS PAGE ─── -->
+        <div class="page-content help-news-content" id="newsContent">
+            <div class="page-title">Announcements</div>
+            <div class="desc-text">No Recent News!</div>
+            <a class="discord-small" href="https://discord.gg/CPPyy49wQe" target="_blank">
+                <svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.86.68,1.75,1.36,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,28.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S53.8,46,53.8,53,48.81,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.2,60,73.2,53s5-12.74,11.44-12.74S96,46,96,53,91.08,65.69,84.69,65.69Z"/></svg>
+                <span>Join Discord</span>
+            </a>
+        </div>
+
+    </main>
+
+    <!-- ─── FOOTER ─── -->
+    <footer class="footer" id="footer">
+        <div class="footer-left">
+            <span class="copyright">Not Affiliated With Mojang Studios</span>
+        </div>
+    </footer>
+
+    <script>
+        // ── DOM refs ──
+        const mainContent = document.getElementById('mainContent');
+        const launchMain = document.getElementById('launchMain');
+        const launchArrow = document.getElementById('launchArrow');
+        const launchDropdown = document.getElementById('launchDropdown');
+        const dropdownOptions = document.querySelectorAll('.dropdown-option');
+        const discordBtn = document.getElementById('discordBtn');
+        const launchOverlay = document.getElementById('launchOverlay');
+        const closeLaunchBtn = document.getElementById('closeLaunchBtn');
+        const navBtns = document.querySelectorAll('.nav-btn');
+        const header = document.getElementById('header');
+        const footer = document.getElementById('footer');
+        const pageContents = {
+            launch: document.getElementById('launchContent'),
+            help: document.getElementById('helpContent'),
+            news: document.getElementById('newsContent')
+        };
+
+        // ── Background crossfade (smooth, no flashes) ──
+        const bgImages = [
+            'https://i.imgur.com/FWmRprl.png',
+            'https://i.imgur.com/xTk73ne.png',
+            'https://i.imgur.com/dXH5ShT.png'
+        ];
+        let currentIdx = 0;
+        let currentEl = document.getElementById('bgCurrent');
+        let nextEl = document.getElementById('bgNext');
+
+        // Initialize: set first image on currentEl, make it active
+        currentEl.style.backgroundImage = `url(${bgImages[0]})`;
+        currentEl.classList.add('active');
+
+        function cycleBackground() {
+            const nextIdx = (currentIdx + 1) % bgImages.length;
+            // Set the next image on the nextEl (which is hidden)
+            nextEl.style.backgroundImage = `url(${bgImages[nextIdx]})`;
+            // Fade in nextEl
+            nextEl.classList.add('active');
+
+            // After the transition, hide the old current and swap roles
+            setTimeout(() => {
+                // Hide the old current
+                currentEl.classList.remove('active');
+
+                // Swap the two elements' roles
+                const temp = currentEl;
+                currentEl = nextEl;
+                nextEl = temp;
+
+                // Update index
+                currentIdx = nextIdx;
+            }, 1300); // slightly longer than CSS transition (1.2s) to ensure smoothness
+        }
+
+        // Start the rotation (every 7.5 seconds)
+        setInterval(cycleBackground, 7500);
+
+        // ── Helper to re-trigger animation on header/footer ──
+        function animateHeaderFooter() {
+            header.classList.remove('animating');
+            footer.classList.remove('animating');
+            void header.offsetHeight;
+            void footer.offsetHeight;
+            header.classList.add('animating');
+            footer.classList.add('animating');
+        }
+
+        // ── Tab switching ──
+        let currentTab = 'launch';
+
+        function switchTab(tab) {
+            if (tab === currentTab) return;
+
+            navBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+
+            Object.values(pageContents).forEach(el => el.classList.remove('active'));
+
+            if (pageContents[tab]) {
+                pageContents[tab].classList.add('active');
+            }
+
+            document.body.classList.remove('page-help', 'page-news');
+            if (tab === 'help') document.body.classList.add('page-help');
+            if (tab === 'news') document.body.classList.add('page-news');
+
+            currentTab = tab;
+            animateHeaderFooter();
+
+            if (isOpen && !isClosing) {
+                closeDropdown();
+            }
+        }
+
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tab = this.dataset.tab;
+                if (tab === 'launch') {
+                    switchTab('launch');
+                } else if (tab === 'help') {
+                    switchTab('help');
+                } else if (tab === 'news') {
+                    switchTab('news');
+                }
+            });
+        });
+
+        // ── Dropdown logic ──
+        let isOpen = false;
+        let isClosing = false;
+
+        function closeDropdown() {
+            if (!isOpen || isClosing) return;
+            isClosing = true;
+            launchDropdown.classList.remove('open');
+            launchDropdown.classList.add('closing');
+            launchArrow.classList.remove('open');
+
+            setTimeout(() => {
+                launchDropdown.classList.remove('closing');
+                launchDropdown.style.display = 'none';
+                isOpen = false;
+                isClosing = false;
+            }, 200);
+        }
+
+        function toggleDropdown(e) {
+            e.stopPropagation();
+            if (currentTab !== 'launch') return;
+
+            if (isOpen) {
+                closeDropdown();
+            } else {
+                launchDropdown.style.display = 'flex';
+                void launchDropdown.offsetHeight;
+                launchDropdown.classList.remove('closing');
+                launchDropdown.classList.add('open');
+                launchArrow.classList.add('open');
+                isOpen = true;
+                isClosing = false;
+            }
+        }
+
+        launchArrow.addEventListener('click', toggleDropdown);
+
+        document.addEventListener('click', function(e) {
+            const wrapper = document.getElementById('launchWrapper');
+            if (!wrapper.contains(e.target) && isOpen && !isClosing) {
+                closeDropdown();
+            }
+        });
+
+        // ── Option selection ──
+        let selectedVersion = 'wasm';
+
+        dropdownOptions.forEach(opt => {
+            opt.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const version = this.dataset.version;
+                if (version === 'js') {
+                    alert('JS version coming soon! Use WASM-GC for now.');
+                    return;
+                }
+                dropdownOptions.forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedVersion = version;
+                if (isOpen && !isClosing) {
+                    closeDropdown();
+                }
+            });
+        });
+
+        // ── Launch action ──
+        launchMain.addEventListener('click', function(e) {
+            if (e.target.closest('.launch-arrow')) return;
+            if (currentTab !== 'launch') return;
+
+            if (selectedVersion === 'wasm') {
+                if (isOpen && !isClosing) {
+                    closeDropdown();
+                    setTimeout(() => {
+                        performLaunch();
+                    }, 250);
+                } else {
+                    performLaunch();
+                }
+            } else {
+                alert('Please select a valid version.');
+            }
+        });
+
+        function performLaunch() {
+            header.classList.add('fade-out');
+            footer.classList.add('fade-out');
+            mainContent.classList.add('fade-out');
+
+            setTimeout(() => {
+                launchOverlay.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => {
+                    mainContent.classList.remove('fade-out');
+                    header.classList.remove('fade-out');
+                    footer.classList.remove('fade-out');
+                }, 100);
+            }, 500);
+        }
+
+        // ── Close launch overlay ──
+        function closeLaunch() {
+            launchOverlay.classList.remove('visible');
+            document.body.style.overflow = '';
+
+            const els = document.querySelectorAll('#launchContent .hero-logo, #launchContent .client-name, #launchContent .launch-wrapper');
+            els.forEach(el => {
+                el.style.animation = 'none';
+                void el.offsetHeight;
+                el.style.animation = '';
+            });
+
+            animateHeaderFooter();
+            header.style.animation = 'none';
+            void header.offsetHeight;
+            header.style.animation = '';
+            footer.style.animation = 'none';
+            void footer.offsetHeight;
+            footer.style.animation = '';
+        }
+
+        closeLaunchBtn.addEventListener('click', closeLaunch);
+        launchOverlay.addEventListener('click', function(e) {
+            if (e.target === launchOverlay) closeLaunch();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && launchOverlay.classList.contains('visible')) closeLaunch();
+        });
+
+        discordBtn.addEventListener('click', function() {
+            window.open('https://discord.gg/CPPyy49wQe', '_blank');
+        });
+
+        launchDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+
+        switchTab('launch');
+    </script>
+</body>
+</html>
